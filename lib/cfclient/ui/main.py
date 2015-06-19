@@ -59,6 +59,9 @@ import cfclient.ui.toolboxes
 import cfclient.ui.tabs
 import cflib.crtp
 
+from cfclient.utils.vicon_input import ViconReader
+from cfclient.utils.trajectory_controller import Trajectory_Controller
+
 from cflib.crazyflie.log import Log, LogVariable, LogConfig
 
 from cfclient.ui.dialogs.bootloader import BootloaderDialog
@@ -155,7 +158,12 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         # Create and start the Input Reader
         self._statusbar_label = QLabel("Loading device and configuration.")
         self.statusBar().addWidget(self._statusbar_label)
-
+        ########################################################vicon
+        self.viconReader = ViconReader()
+        self.trajectoryController = Trajectory_Controller()
+        self.viconReader.input_updated.add_callback(self.trajectoryController.vicon_receive)
+        self.trajectoryController.output_update.add_callback(self.cf.commander.send_setpoint)
+        ########################################################
         self.joystickReader = JoystickReader()
         self._active_device = ""
         self.configGroup = QActionGroup(self._menu_mappings, exclusive=True)
@@ -193,6 +201,11 @@ class MainUI(QtGui.QMainWindow, main_window_class):
                                               self._auto_reconnect_changed)
         self.autoReconnectCheckBox.setChecked(Config().get("auto_reconnect"))
         
+        # Do not queue data from the controller output to the Crazyflie wrapper
+        # to avoid latency
+        #self.joystickReader.sendControlSetpointSignal.connect(
+        #                                      self.cf.commander.send_setpoint,
+        #                                      Qt.DirectConnection)
         self.joystickReader.input_updated.add_callback(
                                          self.cf.commander.send_setpoint)
 
@@ -233,6 +246,10 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         cfclient.ui.pluginhelper.cf = self.cf
         cfclient.ui.pluginhelper.inputDeviceReader = self.joystickReader
         cfclient.ui.pluginhelper.logConfigReader = self.logConfigReader
+        ###############################################################vicon
+        cfclient.ui.pluginhelper.vicon_reader = self.viconReader
+        cfclient.ui.pluginhelper.trajectoryController = self.trajectoryController
+        ###############################################################
 
         self.logConfigDialogue = LogConfigDialogue(cfclient.ui.pluginhelper)
         self._bootloader_dialog = BootloaderDialog(cfclient.ui.pluginhelper)

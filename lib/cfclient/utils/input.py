@@ -86,6 +86,7 @@ class JoystickReader:
         self._thrust_slew_rate = 0
         self._thrust_slew_enabled = False
         self._thrust_slew_limit = 0
+        self._emergency_stop = False
         self._has_pressure_sensor = False
 
         self._old_thrust = 0
@@ -97,6 +98,10 @@ class JoystickReader:
 
         self._trim_roll = Config().get("trim_roll")
         self._trim_pitch = Config().get("trim_pitch")
+        ####################################3
+        self.alticon_old = False
+        self.flipstart_old = False
+        ######################################
 
         self._input_map = None
 
@@ -163,8 +168,10 @@ class JoystickReader:
         self.device_discovery = Caller()
         self.device_error = Caller()
         self.althold_updated = Caller()
-        self.alt1_updated = Caller()
-        self.alt2_updated = Caller()
+        self.alticonmode = Caller() ############################# new
+        self.flipstartcall   = Caller() ########################
+
+
 
         # Call with 3 bools (rp_limiting, yaw_limiting, thrust_limiting)
         self.limiting_updated = Caller()
@@ -393,13 +400,17 @@ class JoystickReader:
         try:
             [roll, pitch, yaw, thrust] = self._selected_mux.read()
 
-            #if trim_roll != 0 or trim_pitch != 0:
-            #    self._trim_roll += trim_roll
-            #    self._trim_pitch += trim_pitch
-            #    self.rp_trim_updated.call(self._trim_roll, self._trim_pitch)
+            #####################################################
+            if alticon != self.alticon_old:
+                self.alticonmode.call(alticon)
+                logger.info("NEW LOGGER    alticonmode.call")
+            self.alticon_old = alticon
 
-            #trimmed_roll = roll + self._trim_roll
-            #trimmed_pitch = pitch + self._trim_pitch
+            if flipstart != self.flipstart_old:
+                self.flipstartcall.call(flipstart)
+                logger.info("FUCK_FUCK_FUCK flipstart is called")
+            self.flipstart_old = flipstart
+            #####################################################
 
             # Thrust might be <0 here, make sure it's not otherwise we'll get an error.
             if thrust < 0:

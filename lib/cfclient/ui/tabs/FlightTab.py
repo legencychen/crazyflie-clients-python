@@ -74,7 +74,10 @@ class FlightTab(Tab, flight_tab_class):
     _emergency_stop_updated_signal = pyqtSignal(bool)
 
     _log_error_signal = pyqtSignal(object, str)
-
+    #########################################################################
+    _alticonmode_signal = pyqtSignal(bool) #######################new
+    _flipstartcall_signal = pyqtSignal(bool)###################
+    ##########################################################################
     #UI_DATA_UPDATE_FPS = 10
 
     connectionFinishedSignal = pyqtSignal(str)
@@ -111,7 +114,15 @@ class FlightTab(Tab, flight_tab_class):
         
         self.helper.inputDeviceReader.althold_updated.add_callback(
                     lambda enabled: self.helper.cf.param.set_value("flightmode.althold", enabled))
+        ##############################################################
+        self.helper.inputDeviceReader.alticonmode.add_callback(
+                                     self._alticonmode_signal.emit)
+        self._alticonmode_signal.connect(self.updateAlticon)
 
+        self.helper.inputDeviceReader.flipstartcall.add_callback(
+                                     self._flipstartcall_signal.emit)
+        self._flipstartcall_signal.connect(self.update_flip)
+        ###############################################################
         self._imu_data_signal.connect(self._imu_data_received)
         self._baro_data_signal.connect(self._baro_data_received)
         self._althold_data_signal.connect(self._althold_data_received)
@@ -429,6 +440,17 @@ class FlightTab(Tab, flight_tab_class):
         self.targetThrust.setText(("%0.2f %%" %
                                    self.thrustToPercentage(thrust)))
         self.thrustProgress.setValue(thrust)
+
+
+    ###############################################
+    def updateAlticon(self, start):
+        self.helper.cf.param.set_value("alticontroller.AltConMod", str(start))
+
+    def update_flip(self, flip):
+        self.helper.cf.param.set_value("alticontroller.flipstart", str(flip))
+        logger.warning("FUCK_FUCK_FUCK the flip signal is sent")
+    ###################################################3
+
 
     def setMotorLabelsEnabled(self, enabled):
         self.M1label.setEnabled(enabled)
